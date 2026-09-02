@@ -1,7 +1,13 @@
+from pathlib import Path
+import sys
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import io
 import streamlit as st
 import pandas as pd
-from pathlib import Path
 from lekha.extract import extract
 from lekha.gaps import find_gaps
 from lekha.config import Entity
