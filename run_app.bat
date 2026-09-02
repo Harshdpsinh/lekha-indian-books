@@ -1,5 +1,7 @@
 @echo off
 cd /d "%~dp0"
+if not exist "app\streamlit_app.py" if exist "lekha-indian-books-main\app\streamlit_app.py" cd lekha-indian-books-main
+set PYTHONPATH=%CD%
 if not exist .venv python -m venv .venv
 call .venv\Scripts\activate.bat
 pip install -q -r requirements.txt
