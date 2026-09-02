@@ -1,5 +1,5 @@
 from __future__ import annotations
-import io, re
+import io
 from pypdf import PdfReader
 
 class NeedPassword(Exception):
@@ -13,24 +13,35 @@ def institution_of(filename: str) -> str:
     stem = filename.rsplit(".", 1)[0].split("_")[0].split("-")[0]
     return (stem or "file").lower()[:24]
 
-def pdf_text(data: bytes, password: str | None = None) -> str:
-    reader = PdfReader(io.BytesIO(data))
-    if reader.is_encrypted:
-        ok = reader.decrypt(password or "")
-        if not ok:
-            raise NeedPassword("password required")
-    pages = []
-    for p in reader.pages:
-        pages.append(p.extract_text() or "")
+def pdf_text(data: bytes, passwords: list[str] | None = None) -> str:
+    passwords = [p for p in (passwords or []) if p]
+    def _open(pw: str):
+        r = PdfReader(io.BytesIO(data))
+        if not r.is_encrypted:
+            return r
+        try:
+            ok = r.decrypt(pw or "")
+        except Exception:
+            return None
+        return r if ok else None
+    reader = _open("")
+    if reader is None:
+        for pw in passwords:
+            reader = _open(pw)
+            if reader is not None:
+                break
+    if reader is None:
+        raise NeedPassword("password required")
+    pages = [p.extract_text() or "" for p in reader.pages]
     text = "\n".join(pages).strip()
     if not text:
         raise ValueError("PDF had no extractable text (scanned image)")
     return text
 
-def read_upload(filename: str, data: bytes, password: str | None = None) -> str:
+def read_upload(filename: str, data: bytes, passwords: list[str] | None = None) -> str:
     name = filename.lower()
     if name.endswith(".pdf") or data[:4] == b"%PDF":
-        return pdf_text(data, password)
+        return pdf_text(data, passwords)
     if name.endswith((".xlsx", ".xls", ".ods")):
         import pandas as pd
         xl = pd.ExcelFile(io.BytesIO(data))
