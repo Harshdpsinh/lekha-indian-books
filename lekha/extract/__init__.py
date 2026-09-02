@@ -16,8 +16,8 @@ PARSERS = {
     "investment": parse_bank,
 }
 
-def extract(text: str, filename: str, own_gstin: str, rules: list | None = None) -> dict:
-    kind = classify(text, filename)
+def extract(text: str, filename: str, own_gstin: str, rules: list | None = None, hint: str | None = None) -> dict:
+    kind = classify(text, filename, hint)
     fn = PARSERS.get(kind["parser"], parse_bank)
     rows = fn(text, own_gstin=own_gstin)
     for r in rows:
