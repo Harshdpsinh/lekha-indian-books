@@ -1,6 +1,13 @@
 import re
 
-def classify(text: str, filename: str = "") -> dict:
+def classify(text: str, filename: str = "", hint: str | None = None) -> dict:
+    if hint:
+        parser = {
+            "bank": "bank", "credit_card": "card", "upi": "upi",
+            "gst_invoice": "gst_invoice", "purchase": "gst_invoice",
+            "utility": "utility", "investment": "investment", "salary": "salary",
+        }.get(hint, "bank")
+        return {"kind": hint, "parser": parser, "provider": hint}
     blob = f"{filename}\n{text}".lower()
     if "form 16" in blob and "gross salary" in blob:
         return {"kind": "salary", "parser": "salary", "provider": "Employer"}
