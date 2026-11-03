@@ -14,8 +14,8 @@ def export_month(month: str, folder: str | Path = 'out'):
         raise ValueError('Use YYYY-MM')
     folder=Path(folder);folder.mkdir(parents=True,exist_ok=True)
     with connect() as con:
-        tx=pd.read_sql_query("SELECT * FROM transactions_v2 WHERE substr(date,1,7)=? ORDER BY date,account_id",(con,),params=(month,))
-        invoices=pd.read_sql_query("SELECT * FROM invoice_v2 WHERE substr(date,1,7)=? ORDER BY date,register",(con,),params=(month,))
+        tx=pd.read_sql_query("SELECT * FROM transactions_v2 WHERE substr(date,1,7)=? ORDER BY date,account_id",con,params=(month,))
+        invoices=pd.read_sql_query("SELECT * FROM invoice_v2 WHERE substr(date,1,7)=? ORDER BY date,register",con,params=(month,))
         accounts=pd.read_sql_query("SELECT * FROM accounts_v2",con)
     tx=_money(tx,['amount_paise'])
     invoices=_money(invoices,['taxable_paise','cgst_paise','sgst_paise','igst_paise','total_paise'])
