@@ -1,6 +1,6 @@
 # Lekha: Vercel + Google Drive only (no Supabase)
 
-This is a **separate experimental website prototype** responding to the owner's decision to remove Supabase. It does not change or delete the legacy Streamlit source or existing Supabase-backed website under `web/`.
+This is a **separate experimental website prototype** responding to the owner's decision to remove Supabase. The public-facing preview displays **synthetic accounting figures only**, with seven navigable views: Dashboard, Transactions, Sales, Purchases, GST Reconciliation, Commission & TDS and Month-End / CA. It does not change or delete the legacy Streamlit source or existing Supabase-backed website under `web/`.
 
 ## Architecture
 
@@ -15,7 +15,7 @@ This is a **separate experimental website prototype** responding to the owner's 
 
 ## Not yet implemented in this branch
 
-Full PDF parser migration, encrypted source-document upload, automated GST 2B matching, bank-to-invoice reconciliation, CA Excel/ZIP, robust audit/change workflows, remote disaster recovery, and browser/end-to-end tests. The code in `web/` contains earlier prototypes of some features but uses Supabase and is **not automatically compatible** with this design.
+Encrypted source-document upload, automated GSTR-2B file matching, bank-to-invoice reconciliation, full PDF parser migration, robust audit/change workflows, remote disaster recovery, and browser/end-to-end tests. A **GST/CA dashboard with sample data** and Excel/ZIP **register exports** are now implemented, but not a certified accounting system; source document PDFs are not included in ZIP. The code in `web/` contains earlier prototypes of some features but uses Supabase and is **not automatically compatible** with this design.
 
 ## Deployment prerequisites
 
