@@ -6,13 +6,13 @@ import {googleCredentials} from "./auth";
 import {Readable} from "node:stream";
 const FOLDER="appDataFolder";
 export type Entry={id:string;kind:"transaction"|"invoice"|"settlement";month:string;createdAt:string;payload:Record<string,string|number|boolean|null>};
-function key():Buffer{const raw=process.env.LEKHA_ENCRYPTION_KEY;if(!raw)throw Error("Missing LEKHA_ENCRYPTION_KEY");const buf=Buffer.from(raw,"base64");if(buf.length!==32)throw Error("LEKHA_ENCRYPTION_KEY must be base64-encoded 32 bytes");return buf}
-function encrypt(data:unknown):Buffer{
+export function key():Buffer{const raw=process.env.LEKHA_ENCRYPTION_KEY;if(!raw)throw Error("Missing LEKHA_ENCRYPTION_KEY");const buf=Buffer.from(raw,"base64");if(buf.length!==32)throw Error("LEKHA_ENCRYPTION_KEY must be base64-encoded 32 bytes");return buf}
+export function encrypt(data:unknown):Buffer{
  const iv=randomBytes(12),cipher=createCipheriv("aes-256-gcm",key(),iv);
  const plain=Buffer.from(JSON.stringify(data),"utf-8");const ciphertext=Buffer.concat([cipher.update(plain),cipher.final()]);
  return Buffer.concat([Buffer.from("LKD1"),iv,cipher.getAuthTag(),ciphertext]);
 }
-function decrypt(blob:Buffer):unknown{
+export function decrypt(blob:Buffer):unknown{
  if(blob.subarray(0,4).toString()!=="LKD1")throw Error("Invalid Lekha encrypted record");
  const iv=blob.subarray(4,16),tag=blob.subarray(16,32);
  const decipher=createDecipheriv("aes-256-gcm",key(),iv);decipher.setAuthTag(tag);
