@@ -5,3 +5,18 @@ __pycache__/
 out/
 data/
 inbox/*.pdf
+
+# Private financial and encrypted backup material
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.lekha
+*.xlsx
+*.xls
+*.csv
+inbox/
+*.pdf
+*.key
+vault.bin
+salt
+pdf_tries.txt
