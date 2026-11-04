@@ -24,6 +24,10 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Python cloud backup syntax check
         run: python -m compileall -q ../cloud_backup
+      - name: Install backup test packages
+        run: python -m pip install cryptography requests google-api-python-client google-auth
+      - name: Encrypted backup roundtrip tests
+        run: PYTHONPATH=.. python -m unittest discover -s ../cloud_backup/tests -p 'test_*.py' -v
       - name: Run synthetic PDF extraction tests
         run: npm test
       - name: Typecheck
