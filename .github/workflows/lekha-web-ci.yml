@@ -22,6 +22,8 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Python cloud backup syntax check
+        run: python -m compileall -q ../cloud_backup
       - name: Typecheck
         run: npm run lint
       - name: Next.js production build
