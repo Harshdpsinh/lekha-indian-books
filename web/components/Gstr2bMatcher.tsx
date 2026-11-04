@@ -62,16 +62,16 @@ export default function Gstr2bMatcher({client,user,month,invoices,refresh}:{clie
     if(Math.abs(actual.gst-expected)>100){mismatched++;warnings.push(invoice.invoice_no+": GST amount differs, ledger "+money(expected)+" vs 2B "+money(actual.gst));continue}
     matched++;updateIds.push(invoice.id);
    }
+   const storagePath=`${user.id}/${month}/gstr2b-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
+   const storage=await client.storage.from("lekha-documents").upload(storagePath,file,{upsert:false});
+   if(storage.error)throw new Error("Could not save source file: "+storage.error.message);
+   const {error:docError}=await client.from("documents").insert({user_id:user.id,storage_path:storagePath,name:file.name,month,kind:"gst_invoice",size_bytes:file.size,status:"needs-review",error:"Uploaded GSTR-2B matching: requires accountant review and GST portal verification"});
+   if(docError)warnings.push("Document index not recorded: "+docError.message);
    // This changes only exact matches and never marks missing invoices automatically.
    if(updateIds.length){
     const {error}=await client.from("invoices").update({itc_status:"matched-2b"}).in("id",updateIds);
     if(error)throw new Error(error.message);
    }
-   const storagePath=`${user.id}/${month}/gstr2b-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
-   const storage=await client.storage.from("lekha-documents").upload(storagePath,file,{upsert:false});
-   if(storage.error)throw new Error("Matched statuses updated but failed to save source file: "+storage.error.message);
-   const {error:docError}=await client.from("documents").insert({user_id:user.id,storage_path:storagePath,name:file.name,month,kind:"gst_invoice",size_bytes:file.size,status:"needs-review",error:"Uploaded GSTR-2B matching: requires accountant review and GST portal verification"});
-   if(docError)warnings.push("Document index not recorded: "+docError.message);
    await refresh();
    setSummary(`Uploaded 2B rows: ${valid}. Purchase invoices matched: ${matched}. Tax mismatch: ${mismatched}. Missing from uploaded file: ${notFound}. These are file-level matches, NOT GST portal verification.`);
    setDetails(warnings.slice(0,15));
