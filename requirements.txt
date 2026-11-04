@@ -6,3 +6,7 @@ python-dotenv>=1.0
 cryptography>=43.0
 streamlit>=1.38
 rapidfuzz>=3.9
+google-api-python-client>=2.150
+google-auth>=2.35
+google-auth-oauthlib>=1.2
+keyring>=25.4
