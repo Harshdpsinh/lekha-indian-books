@@ -6,12 +6,12 @@ This directory is a **new Next.js frontend** alongside the existing Windows/Stre
 - Email/password sign-in with Supabase Auth (no public registration form).
 - Responsive monthly dashboard for personal/business transaction summaries and GST invoice totals.
 - Private file upload to Supabase Storage and metadata in Postgres with per-owner RLS.
-- Browser-side import of CSV/XLSX with recognized date/description/debit/credit headers; imports require manual accuracy checks.
+- Browser-side CSV/XLSX and text-based PDF statement parsing (PDF.js); password-protected PDFs can be opened using an ephemeral document password. Unknown layouts/scanned PDFs are flagged for review. These are preliminary parsers, not bank-specific certified imports.
 - Manual sales/purchase invoice register, basic GST totals, manually updated receipts, **CSV/XLSX GSTR-2B matching by GSTIN + invoice number + tax amount**, and commission/GST/TDS payout difference tracking (requires 002_commission_settlements.sql).
 - Review queue and month-wise downloadable ZIP containing source documents and an Excel CA pack.
 
 ## Not done yet (do not describe as complete)
-- Automatic parsing of bank/card PDF statements, including password-protected files.
+- Robust bank/card-specific PDF parsing across real institution layouts, scanned PDF OCR and full source-balance reconciliation. The browser-side **generic text PDF** parser currently supports only recognized column patterns.
 - Institution-specific statement formats, historical opening/closing balance matching and end-to-end transfer/card settlement reconciliation.
 - Direct GST portal integration and validated tax calculations. Basic invoice matching to **user-uploaded** GSTR-2B CSV/XLSX exists, but must be independently verified and cannot detect all statement formats.
 - TDS/GST deduction recovery and insurer/commission-payer-wise expected/received settlement matching.
@@ -29,7 +29,7 @@ This directory is a **new Next.js frontend** alongside the existing Windows/Stre
 6. Deploy the branch and test with **synthetic/redacted** sample data. Check RLS isolation, import errors, duplicate handling and ZIP exports.
 7. To work locally inside `web`: `npm install`, `npm run lint`, `npm run dev`.
 
-Free plans have rate, storage, project-inactivity and execution limits. Never assume guaranteed ₹0 for unlimited usage. Never connect a paid subscription without user consent.
+Free plans have rate, storage, project-inactivity and execution limits. **Vercel Hobby usage terms restrict it to personal, non-commercial projects; the business/GST product may require a different compliant hosting plan/provider.** Never assume guaranteed ₹0 or use a business production workload on an ineligible plan. Never connect a paid subscription without user consent.
 
 ## Limitations requiring review
 - The generic statement importer assumes CSV/XLSX tabular rows with a header row. Files lacking clear debit/credit columns may be misinterpreted. Treat imports as drafts.
@@ -37,6 +37,7 @@ Free plans have rate, storage, project-inactivity and execution limits. Never as
 - 5,000 transaction and 1,000 document display limits are provisional; pagination is required.
 - Monthly ZIP is downloaded as **plaintext** after fetching private source files. Protect it locally.
 - Store OAuth credentials/secrets in appropriate server-side secret storage. Never commit them.
-- Browser does not retain PDFs to parse later automatically; background processing is a separate milestone.
+- Browser parses supported PDFs at upload time only; errors are marked needs-review, with no automatic queued retry. PDF statement password is not stored or sent to a service. Background processing and secure vault are separate milestones.
+- Synthetic test coverage includes PDF text layout parsing and encrypted cloud backup round-trip; **real bank PDFs, real cloud credentials, full browser/E2E workflows and production recovery are not yet verified**.
 
 The owner has authorized development across the full roadmap under Issue #2, but **deploying live financial data still requires external Supabase/Vercel account connections and completed safety/accuracy gates**.
