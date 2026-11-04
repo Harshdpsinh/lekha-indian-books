@@ -18,6 +18,18 @@ export default function LekhaDashboard({demo}:{demo:boolean}){
  });
  const [showForm,setShowForm]=useState(false),[filter,setFilter]=useState("");
  const [documents,setDocuments]=useState<DocumentItem[]>([]);
+ useEffect(()=>{
+  if(demo){setDocuments([]);return}
+  let active=true;
+  setDocuments([]);
+  fetch("/api/documents?month="+encodeURIComponent(month),{cache:"no-store"}).then(async res=>{
+   const data=await res.json();
+   if(!res.ok)throw Error(data.error||"Could not load document index");
+   if(active)setDocuments(data.documents??[]);
+  }).catch(e=>{if(active)setError("Document register unavailable: "+String(e))});
+  return ()=>{active=false};
+ },[demo,month]);
+
  const requestSeq=useRef(0);
  const load=useCallback(async()=>{
   const seq=++requestSeq.current;setError("");
