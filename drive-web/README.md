@@ -15,7 +15,7 @@ This is a **separate experimental website prototype** responding to the owner's 
 
 ## Not yet implemented in this branch
 
-Encrypted source-document upload, automated GSTR-2B file matching, bank-to-invoice reconciliation, full PDF parser migration, robust audit/change workflows, remote disaster recovery, and browser/end-to-end tests. A **GST/CA dashboard with sample data** and Excel/ZIP **register exports** are now implemented, but not a certified accounting system; source document PDFs are not included in ZIP. The code in `web/` contains earlier prototypes of some features but uses Supabase and is **not automatically compatible** with this design.
+Automated GSTR-2B file matching, bank-to-invoice reconciliation, full PDF parser migration/import, robust audit/change workflows, remote disaster recovery, and browser/end-to-end tests. A **GST/CA dashboard with sample data** and Excel/ZIP **register exports** are now implemented, but not a certified accounting system; source document PDFs are not included in ZIP. The code in `web/` contains earlier prototypes of some features but uses Supabase and is **not automatically compatible** with this design.
 
 ## Deployment prerequisites
 
@@ -36,3 +36,11 @@ Encrypted source-document upload, automated GSTR-2B file matching, bank-to-invoi
 ## Data recovery warning
 
 Losing `LEKHA_ENCRYPTION_KEY` permanently makes all encrypted ledger entries unreadable. Rotate/change keys only with a tested migration. Do not claim that Drive alone is a full backup.
+
+## Private financial documents (added)
+
+- An authenticated **Documents** screen accepts multiple PDF, XLS, XLSX and CSV files with a category and accounting month. Files are checked for basic signatures and file size (2 MiB maximum each) and encrypted with **AES-256-GCM** on the Vercel server before upload to Google Drive `appDataFolder`. File contents and original filenames reside inside the encrypted blob; Drive only sees a generated file ID and month in the storage filename.
+- Document upload/list/download is available through authenticated `/api/documents` and `/api/documents/[id]` routes. Download decrypts and SHA-256-verifies the file server-side, and sets no-store/nosniff headers. Month-end CA ZIP includes uploaded original documents and a document index **once the private Drive account is connected**. Downloaded ZIP is plaintext, not encrypted.
+- Uploading a PDF or statement currently only stores a document for review. **It does not yet extract transactions or reconcile records automatically.** Password-protected PDFs are stored as encrypted files but their contents are not decrypted or imported. Real files have not yet been tested with an authorized Google account.
+- **Operational limitations**: Vercel's request body constraints mean 2 MiB max per file for this initial server-side upload. A larger-file architecture needs an alternative direct encrypted client upload flow. Google Drive OAuth credentials and encryption key must be configured before live documents can be saved; the public demo deliberately disables uploads.
+- In the Drive model, source files are encrypted, but Drive remains primary storage. A separate backup/restore procedure is still necessary.
