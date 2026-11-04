@@ -4,7 +4,6 @@ function documentKey():Buffer{const raw=process.env.LEKHA_ENCRYPTION_KEY;if(!raw
 const MIME:Record<string,string>={pdf:"application/pdf",csv:"text/csv",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",xls:"application/vnd.ms-excel"};
 export const MAX_DOCUMENT_BYTES=2*1024*1024; // Vercel Functions 4.5MB request limit; conservative.
 export type StoredDocument={id:string;name:string;month:string;kind:string;size:number;sha256:string;createdAt:string;encrypted:true;status:"needs-review"};
-type Drive=ReturnType<typeof google.drive>;
 const monthPattern=/^20\d{2}-(0[1-9]|1[0-2])$/;
 export function safeMonth(m:string){if(!monthPattern.test(m))throw Error("Invalid accounting month");return m}
 function supportedName(name:string){
