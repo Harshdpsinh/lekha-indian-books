@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "postinstall": "node scripts/copy-pdf-worker.mjs",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",
@@ -16,13 +18,15 @@
     "lucide-react": "^0.468.0",
     "jszip": "^3.10.1",
     "exceljs": "^4.4.0",
-    "papaparse": "^5.5.3"
+    "papaparse": "^5.5.3",
+    "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
     "typescript": "^5.8.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "@types/papaparse": "^5.3.16"
+    "@types/papaparse": "^5.3.16",
+    "tsx": "^4.19.0"
   }
 }
