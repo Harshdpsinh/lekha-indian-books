@@ -6,7 +6,8 @@ import {google} from "googleapis";
 declare module "next-auth/jwt" {
  interface JWT {googleRefreshToken?:string;googleAccessToken?:string;googleExpiresAt?:number;accessError?:string;}
 }
-function required(key:string):string {const value=process.env[key];if(!value)throw new Error("Missing "+key);return value}
+export const driveSetupReady=()=>Boolean(process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET&&process.env.NEXTAUTH_SECRET&&process.env.LEKHA_ALLOWED_EMAIL&&process.env.LEKHA_ENCRYPTION_KEY);
+function required(key:string):string {return process.env[key]||"setup-required-not-a-real-secret"}
 export const authOptions:NextAuthOptions={
  providers:[GoogleProvider({
   clientId:required("GOOGLE_CLIENT_ID"),
@@ -16,7 +17,7 @@ export const authOptions:NextAuthOptions={
  secret:required("NEXTAUTH_SECRET"),
  session:{strategy:"jwt",maxAge:7*24*3600},
  callbacks:{
-  async signIn({profile}){const email=profile?.email?.toLowerCase();return !!email&&email===required("LEKHA_ALLOWED_EMAIL").toLowerCase()},
+  async signIn({profile}){const email=profile?.email?.toLowerCase();return driveSetupReady()&&!!email&&email===required("LEKHA_ALLOWED_EMAIL").toLowerCase()},
   async jwt({token,account}){
    if(account?.refresh_token)token.googleRefreshToken=account.refresh_token;
    if(account?.access_token){token.googleAccessToken=account.access_token;token.googleExpiresAt=account.expires_at}
