@@ -42,7 +42,7 @@ export async function parsePdf(file:File,kind:"bank"|"credit_card"|"upi",passwor
  pdfjs.GlobalWorkerOptions.workerSrc="/pdf.worker.min.mjs";
  const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),password:password||undefined});
  let pdf:Awaited<typeof task.promise>;
- try{pdf=await task.promise}catch(e){if(e instanceof pdfjs.PasswordException)throw new Error("PASSWORD_REQUIRED: Enter PDF password and retry.");throw e}
+ try{pdf=await task.promise}catch(e){if(e instanceof Error && (e.name==="PasswordException" || /password/i.test(e.message)))throw new Error("PASSWORD_REQUIRED: Enter PDF password and retry.");throw e}
  if(pdf.numPages>60)throw new Error("PDF exceeds 60-page limit.");
  const lines:string[]=[];
  try{
