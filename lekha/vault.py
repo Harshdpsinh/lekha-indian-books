@@ -1,6 +1,6 @@
 """Encrypted local vault. Secrets never written as plaintext JSON."""
 from __future__ import annotations
-import json, os
+import json, os, tempfile
 from pathlib import Path
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -18,11 +18,31 @@ def _fernet(passphrase: str, salt: bytes) -> Fernet:
 def save(passphrase: str, secrets: dict[str, str]) -> None:
     VAULT.parent.mkdir(parents=True, exist_ok=True)
     salt = os.urandom(16)
-    SALT.write_bytes(salt)
     token = _fernet(passphrase, salt).encrypt(json.dumps(secrets).encode())
-    VAULT.write_bytes(token)
+    # Write both salt and ciphertext into one atomically replaced file.
+    # The legacy separate salt file remains readable for migration.
+    payload = b"LEKHA2" + salt + token
+    fd, temp = tempfile.mkstemp(prefix=".vault-", dir=VAULT.parent)
+    try:
+        with os.fdopen(fd, "wb") as out:
+            out.write(payload)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temp, VAULT)
+        try:
+            VAULT.chmod(0o600)
+        except OSError:
+            pass
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
 
 def load(passphrase: str) -> dict[str, str]:
-    salt = SALT.read_bytes()
-    raw = _fernet(passphrase, salt).decrypt(VAULT.read_bytes())
+    payload = VAULT.read_bytes()
+    if payload.startswith(b"LEKHA2"):
+        salt, ciphertext = payload[6:22], payload[22:]
+    else:
+        # Backwards compatibility with the previous vault format.
+        salt, ciphertext = SALT.read_bytes(), payload
+    raw = _fernet(passphrase, salt).decrypt(ciphertext)
     return json.loads(raw)

@@ -19,7 +19,7 @@ from lekha.spend import token_of, CATS
 
 st.set_page_config(page_title="Lekha", layout="wide")
 st.title("Lekha — Indian books")
-st.caption("Upload bank, cards, UPI, GST, purchases and bills on separate tabs. PDF passwords live in ~/.lekha/pdf_tries.txt")
+st.caption("Upload bank, cards, UPI, GST, purchases and bills. Passwords are held only in the encrypted vault.")
 
 ent = Entity()
 missing = ent.validate()
@@ -31,26 +31,8 @@ if "vault" not in st.session_state:
 if "pw_cache" not in st.session_state:
     st.session_state.pw_cache = {}
 
-TRIES = Path.home() / ".lekha" / "pdf_tries.txt"
-SEED = ["gohi0708", "GOHI0708", "HARS0708", "hars0708", "070819941994", "HARS070894"]
-
-def load_tries() -> list[str]:
-    TRIES.parent.mkdir(parents=True, exist_ok=True)
-    if not TRIES.exists():
-        TRIES.write_text("\n".join(SEED) + "\n", encoding="utf-8")
-    return [ln.strip() for ln in TRIES.read_text(encoding="utf-8").splitlines() if ln.strip()]
-
-def save_tries(lines: list[str]) -> None:
-    TRIES.parent.mkdir(parents=True, exist_ok=True)
-    uniq = []
-    for x in lines:
-        x = x.strip()
-        if x and x not in uniq:
-            uniq.append(x)
-    TRIES.write_text("\n".join(uniq) + ("\n" if uniq else ""), encoding="utf-8")
-
-tries = load_tries()
-
+# No default passwords, password dictionaries or plaintext password files.
+# Unlock the encrypted vault before uploading password-protected statements.
 LANES = [
     ("Bank", "bank", "HDFC / Axis / ICICI / SBI / Kotak e-statements"),
     ("Cards", "credit_card", "Credit card bills"),
@@ -68,23 +50,30 @@ with st.sidebar:
     month = st.text_input("Month YYYY-MM (or all)", "all")
     start = st.date_input("From", value=None)
     end = st.date_input("To", value=None)
-    st.subheader("PDF passwords")
-    st.caption("Tried on every locked statement. Saved in ~/.lekha/pdf_tries.txt")
-    edited = st.text_area("One per line", value="\n".join(tries), height=140)
-    if st.button("Save passwords"):
-        save_tries(edited.splitlines())
-        st.success("Saved")
-        st.rerun()
-    st.subheader("Vault")
-    phrase = st.text_input("Passphrase", type="password")
-    if st.button("Unlock vault") and phrase:
+    st.subheader("Secure PDF vault")
+    phrase = st.text_input("Master password", type="password")
+    if st.button("Unlock existing vault"):
         try:
             st.session_state.vault = vault_load(phrase)
-            st.success("Unlocked")
+            st.session_state.vault_unlocked = True
+            st.success("Vault unlocked")
+        except (FileNotFoundError, ValueError):
+            st.error("Vault missing or invalid. Use Create vault only for first-time setup.")
         except Exception:
+            st.error("Could not unlock vault. Check your master password and vault files.")
+    if st.button("Create new vault"):
+        from lekha.vault import VAULT, save as vault_save
+        if VAULT.exists():
+            st.error("Vault already exists. Creation blocked to protect existing passwords.")
+        elif len(phrase) < 12:
+            st.error("Use a master password of at least 12 characters.")
+        else:
+            vault_save(phrase, {})
             st.session_state.vault = {}
-            st.info("New vault — passwords you save will create it.")
-            st.session_state["phrase"] = phrase
+            st.session_state.vault_unlocked = True
+            st.success("Encrypted vault created")
+    if st.session_state.get("vault_unlocked"):
+        st.success("Vault is unlocked for this session")
 
 rows = load_rows(
     fy=fy,
@@ -110,11 +99,11 @@ def ingest_files(files, hint: str, key_pw: str):
     if not files:
         return
     extra = st.text_input("Extra password if a file still fails", type="password", key=key_pw)
-    live = load_tries()
+    live = []
     for f in files:
         inst = institution_of(f.name).lower()
-        mapped = st.session_state.pw_cache.get(inst) or st.session_state.vault.get(f"docpw:{inst}")
-        passwords = [p for p in [extra, mapped] + live if p]
+        mapped = st.session_state.pw_cache.get(inst) or (st.session_state.vault.get(f"docpw:{inst}") if st.session_state.get("vault_unlocked") else None)
+        passwords = [p for p in [mapped, extra] if p]
         try:
             text = read_upload(f.name, f.getvalue(), passwords)
         except NeedPassword:
@@ -128,7 +117,12 @@ def ingest_files(files, hint: str, key_pw: str):
         remember("ingest", f"{f.name}: {added} new, {skipped} skipped")
         if extra:
             st.session_state.pw_cache[inst] = extra
-            save_tries(live + [extra])
+            if st.session_state.get("vault_unlocked"):
+                from lekha.vault import save as vault_save
+                st.session_state.vault[f"docpw:{inst}"] = extra
+                vault_save(phrase, st.session_state.vault)
+            else:
+                st.warning("Password used once but not saved. Unlock vault to remember it.")
         st.success(f"{f.name}: {added} new · {skipped} duplicate skipped via {result['meta']['parser']}")
         gaps = find_gaps(result["rows"])
         if gaps:
@@ -167,7 +161,7 @@ with tabs[len(LANES)+2]:
     if st.button("Write CA xlsx"):
         out = write_ca_pack(rows, Path("out") / "lekha.xlsx", ent.__dict__)
         remember("export", str(out))
-        st.success(out)
+        st.success("Workbook ready")
         st.download_button("Download Excel", data=open(out, "rb").read(), file_name="lekha.xlsx")
     if st.button("Write CSV"):
         out = write_csv(rows, Path("out") / "lekha.csv")
