@@ -58,7 +58,7 @@ def restore_without_overwrite(encrypted_file: Path, destination_db: Path, passph
         raise ValueError("Not a Lekha encrypted snapshot")
     salt=blob[len(HEADER):len(HEADER)+16]
     plaintext=Fernet(_key(passphrase,salt)).decrypt(blob[len(HEADER)+16:])
-    if not plaintext.startswith(b"SQLite format 3\\x00"):
+    if not plaintext.startswith(b"SQLite format 3\x00"):
         raise ValueError("Decrypted file is not an SQLite database")
     destination_db.parent.mkdir(parents=True,exist_ok=True)
     fd,name=tempfile.mkstemp(prefix=".lekha-restore-",dir=destination_db.parent)
