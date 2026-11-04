@@ -7,21 +7,21 @@ This directory is a **new Next.js frontend** alongside the existing Windows/Stre
 - Responsive monthly dashboard for personal/business transaction summaries and GST invoice totals.
 - Private file upload to Supabase Storage and metadata in Postgres with per-owner RLS.
 - Browser-side import of CSV/XLSX with recognized date/description/debit/credit headers; imports require manual accuracy checks.
-- Manual sales/purchase invoice register, basic GST totals, manually updated receipts and manually recorded GSTR-2B status.
+- Manual sales/purchase invoice register, basic GST totals, manually updated receipts, **CSV/XLSX GSTR-2B matching by GSTIN + invoice number + tax amount**, and commission/GST/TDS payout difference tracking (requires 002_commission_settlements.sql).
 - Review queue and month-wise downloadable ZIP containing source documents and an Excel CA pack.
 
 ## Not done yet (do not describe as complete)
 - Automatic parsing of bank/card PDF statements, including password-protected files.
 - Institution-specific statement formats, historical opening/closing balance matching and end-to-end transfer/card settlement reconciliation.
-- GST portal or GSTR-2B data ingestion, automated ITC matching and validated tax calculations.
+- Direct GST portal integration and validated tax calculations. Basic invoice matching to **user-uploaded** GSTR-2B CSV/XLSX exists, but must be independently verified and cannot detect all statement formats.
 - TDS/GST deduction recovery and insurer/commission-payer-wise expected/received settlement matching.
 - Background worker, job queue/retries, large files, scale, document encryption at rest under user-controlled keys.
-- Password vault cloud migration and unattended encrypted Google Drive backup of Postgres and uploaded documents.
+- Password vault cloud migration and production-verified unattended encrypted Google Drive backup. A scheduled backup script and workflow have been added in `../cloud_backup/`, but require separate secure cloud credentials and a successful restore drill before activation can be claimed.
 - Accountant-grade financial accuracy, tax filing certification, robust duplicate detection of repeated identical same-day transactions.
 - Automatic cloud deployment and live production verification. The old Windows watcher only protects local SQLite, **not** Supabase.
 
 ## Free-tier setup (manual account connection required)
-1. Create a personal **Supabase Free** project. In SQL Editor run `supabase/schema.sql`.
+1. Create a personal **Supabase Free** project. In SQL Editor run `supabase/schema.sql`, then `supabase/002_commission_settlements.sql`.
 2. In Supabase Authentication settings disable public signups and create/invite the single authorized user through the admin console. Verify this user can sign in before uploading test data.
 3. Get **Project URL** and **publishable/anon** key from Supabase. The service-role key must never be placed in a NEXT_PUBLIC environment variable.
 4. Create a Vercel Hobby project connected to this GitHub repository. Choose **Root Directory = web** and **Framework = Next.js**. Use a preview branch, not the production environment.
