@@ -44,7 +44,7 @@ export default function Home(){
  const refresh=useCallback(async()=>{
   if(!client||!user)return;
   // Read full data across financial years in bounded pages. Never silently show only the latest 5,000.
-  async function loadAll<T>(table:"transactions"|"invoices"|"documents"|"commission_settlements",orderColumn:string,maxRows:number):Promise<T[]>{
+  async function loadAll<T>(table:"transactions"|"invoices"|"documents"|"document_periods"|"commission_settlements",orderColumn:string,maxRows:number):Promise<T[]>{
     const out:T[]=[];const page=1000;
     for(let start=0;start<maxRows;start+=page){
       const {data,error}=await client!.from(table).select("*").order(orderColumn,{ascending:false}).range(start,start+page-1);
