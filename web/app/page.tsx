@@ -12,6 +12,7 @@ import {money,paisa} from "@/lib/types";
 import Gstr2bMatcher from "@/components/Gstr2bMatcher";
 import CommissionReconciliation from "@/components/CommissionReconciliation";
 
+type DocumentPeriod={user_id:string;document_id:string;month:string};
 type Settlement = {id:string;month:string;payer:string;invoice_no:string;gross_commission_paise:number;gst_charged_paise:number;tds_deducted_paise:number;other_deductions_paise:number;amount_received_paise:number;notes:string|null};
 type Tab="Dashboard"|"Yearly Overview"|"Upload Center"|"Transactions"|"GST & Invoices"|"Reconciliation"|"Month-End & CA";
 const items:{name:Tab;icon:typeof BarChart3}[]=[
@@ -27,7 +28,7 @@ export default function Home(){
  const [email,setEmail]=useState(""); const [password,setPassword]=useState("");
  const [tab,setTab]=useState<Tab>("Dashboard"); const [message,setMessage]=useState(""); const [error,setError]=useState("");
  const [busy,setBusy]=useState(false);const [month,setMonth]=useState(nowMonth());const [entity,setEntity]=useState<"all"|Entity>("all");
- const [txns,setTxns]=useState<Transaction[]>([]);const [invoices,setInvoices]=useState<Invoice[]>([]);const [docs,setDocs]=useState<Doc[]>([]);const [settlements,setSettlements]=useState<Settlement[]>([]);
+ const [txns,setTxns]=useState<Transaction[]>([]);const [invoices,setInvoices]=useState<Invoice[]>([]);const [docs,setDocs]=useState<Doc[]>([]);const [docPeriods,setDocPeriods]=useState<DocumentPeriod[]>([]);const [settlements,setSettlements]=useState<Settlement[]>([]);
  const [account,setAccount]=useState("Main Bank");const [docKind,setDocKind]=useState("bank");const [pdfPassword,setPdfPassword]=useState("");
  const [docEntity,setDocEntity]=useState<Entity>("business");
  const [invoiceKind,setInvoiceKind]=useState<"sale"|"purchase">("sale");
@@ -54,19 +55,20 @@ export default function Home(){
     throw new Error(table+" has more than "+maxRows+" rows; add server-side pagination before trusting yearly totals.");
   }
   try{
-    const [t,i,d,c]=await Promise.all([
+    const [t,i,d,c,p]=await Promise.all([
       loadAll<Transaction>("transactions","txn_date",50000),
       loadAll<Invoice>("invoices","invoice_date",20000),
       loadAll<Doc>("documents","created_at",20000),
-      loadAll<Settlement>("commission_settlements","month",20000)
+      loadAll<Settlement>("commission_settlements","month",20000),
+      loadAll<DocumentPeriod>("document_periods","month",50000)
     ]);
-    setTxns(t);setInvoices(i);setDocs(d);setSettlements(c);setError("");
+    setTxns(t);setInvoices(i);setDocs(d);setSettlements(c);setDocPeriods(p);setError("");
   }catch(e){setError("Could not load complete ledger: "+String(e))}
  },[client,user]);
  useEffect(()=>{void refresh()},[refresh]);
  const filteredTx=txns.filter(t=>t.txn_date.startsWith(month)&&(entity==="all"||t.entity===entity));
  const filteredInv=invoices.filter(i=>i.invoice_date.startsWith(month)&&(entity==="all"||i.entity===entity));
- const filteredDocs=docs.filter(d=>d.month===month);
+ const filteredDocs=docs.filter(d=>d.month===month||docPeriods.some(p=>p.document_id===d.id&&p.month===month));
  const income=filteredTx.filter(t=>t.direction==="credit"&&!["Internal transfer","Card settlement","Investment","Loan principal"].includes(t.category)).reduce((a,t)=>a+t.amount_paise,0);
  const expense=filteredTx.filter(t=>t.direction==="debit"&&!["Internal transfer","Card settlement","Investment","Loan principal"].includes(t.category)).reduce((a,t)=>a+t.amount_paise,0);
  const sales=filteredInv.filter(i=>i.kind==="sale");
@@ -104,6 +106,9 @@ export default function Home(){
       })));
       const {error:err}=await client.from("transactions").upsert(rows,{onConflict:"user_id,fingerprint",ignoreDuplicates:true});
       if(err)throw err;
+      const fileMonths=[...new Set(parsed.rows.map(r=>r.txn_date.slice(0,7)))];
+      const {error:periodError}=await client.from("document_periods").upsert(fileMonths.map(m=>({user_id:user.id,document_id:id,month:m})),{onConflict:"user_id,document_id,month",ignoreDuplicates:true});
+      if(periodError)warnings.push(file.name+": period indexing failed: "+periodError.message);
       imported+=rows.length;
       await client.from("documents").update({status:parsed.issues.length?"needs-review":"imported",error:parsed.issues.slice(0,5).join("; ")||null}).eq("id",id);
       if(parsed.issues.length)warnings.push(file.name+": "+parsed.issues.length+" rows need review");
