@@ -26,7 +26,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 HEADER=b"LEKHACLOUD1"
-TABLES=("accounts","documents","transactions","invoices","commission_settlements")
+TABLES=("accounts","documents","document_periods","transactions","invoices","commission_settlements")
 MAX_FILE=50*1024*1024
 MAX_TOTAL=250*1024*1024
 
