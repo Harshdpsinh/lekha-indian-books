@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import type { Transaction } from "@/lib/types";
 import { money } from "@/lib/types";
+import {annualExcel, annualPdf} from "@/lib/yearly-reports";
 
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const EXCLUDE=new Set(["Internal transfer","Card settlement","Investment","Loan principal"]);
@@ -39,7 +40,7 @@ export default function YearlyDashboard({transactions,year,entity,month,onPickMo
   return [...m.values()].sort((a,b)=>b.expense-a.expense||b.income-a.income);
  },[rows]);
  const biggest=Math.max(1,...months.map(m=>Math.max(m.income,m.expense)));
- return <div className="stack"><div className="row"><button className={periodMode==="financial"?"btn":"btn alt"} onClick={()=>setPeriodMode("financial")}>Indian Financial Year (Apr–Mar)</button><button className={periodMode==="calendar"?"btn":"btn alt"} onClick={()=>setPeriodMode("calendar")}>Calendar Year (Jan–Dec)</button><span className="hint">Select any month using the top filter to choose the relevant financial year.</span></div>
+ return <div className="stack"><div className="row"><button className="btn" onClick={()=>void annualExcel({label:periodLabel,months,categories:category,transactions:rows})}>Download Yearly Excel</button><button className="btn alt" onClick={()=>void annualPdf({label:periodLabel,months,categories:category,transactions:rows})}>Download Yearly PDF</button></div><div className="row"><button className={periodMode==="financial"?"btn":"btn alt"} onClick={()=>setPeriodMode("financial")}>Indian Financial Year (Apr–Mar)</button><button className={periodMode==="calendar"?"btn":"btn alt"} onClick={()=>setPeriodMode("calendar")}>Calendar Year (Jan–Dec)</button><span className="hint">Select any month using the top filter to choose the relevant financial year.</span></div>
   <div className="grid">
    <div className="card stat"><small>Annual income — {periodLabel}</small><strong>{money(annualIncome)}</strong></div>
    <div className="card stat"><small>Annual expenses — {periodLabel}</small><strong>{money(annualExpense)}</strong></div>
