@@ -49,7 +49,7 @@ export function parsePdfLines(lines:string[],kind:"bank"|"credit_card"|"upi"):Pd
  if(skipped)issues.push(skipped+" dated rows were ambiguous and skipped.");
  if(rows.length)issues.push("PDF table interpretation requires comparison against source statement balances.");
  if(!rows.length)issues.push("No safely recognized transactions. Scanned/image PDFs require OCR.");
- return {rows,issues,format:bank?"bank-plain-text":"card-plain-text"};
+ return {rows,issues,format:bank?"bank-three-column":"credit-card"};
 }
 
 function headerPosition(lines:PositionedLine[],terms:RegExp):number|null{
