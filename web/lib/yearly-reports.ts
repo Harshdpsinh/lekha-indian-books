@@ -19,7 +19,6 @@ export async function annualExcel(data:AnnualReportData){
  tx.addRow(["Date","Entity","Account","Description","Debit/Credit","Amount INR","Category","Reference","Verified"]);
  for(const t of data.transactions)tx.addRow([t.txn_date,t.entity,t.account_label,t.description,t.direction,t.amount_paise/100,t.category,t.reference??"",t.reviewed?"Reviewed":"Needs review"]);
  for(const sheet of workbook.worksheets){sheet.getRow(1).font={bold:true};sheet.columns.forEach((column,i)=>{column.width=i===3&&sheet.name==="Yearly Transactions"?52:24});sheet.views=[{state:"frozen",ySplit:1}]}
- for(const sheet of [summary,cats,tx]){for(const row of sheet.getRows(2,sheet.rowCount-1)??[]){for(const c of row.eachCell.bind(row) as never)void c;}} // Retain cells' values unmodified.
  const buf=await workbook.xlsx.writeBuffer();
  download(new Blob([new Uint8Array(buf as ArrayBuffer)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),filename(data.label,"xlsx"));
 }
