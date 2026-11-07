@@ -42,13 +42,26 @@ export default function Home(){
  },[client]);
  const refresh=useCallback(async()=>{
   if(!client||!user)return;
-  const [t,i,d,c]=await Promise.all([
-   client.from("transactions").select("*").order("txn_date",{ascending:false}).limit(5000),
-   client.from("invoices").select("*").order("invoice_date",{ascending:false}).limit(5000),
-   client.from("documents").select("*").order("created_at",{ascending:false}).limit(1000),
-   client.from("commission_settlements").select("*").order("month",{ascending:false}).limit(5000)]);
-  if(t.error||i.error||d.error||c.error){setError([t.error?.message,i.error?.message,d.error?.message,c.error?.message].filter(Boolean).join(" / "));return}
-  setTxns((t.data??[]) as Transaction[]);setInvoices((i.data??[]) as Invoice[]);setDocs((d.data??[]) as Doc[]);setSettlements((c.data??[]) as Settlement[]);
+  // Read full data across financial years in bounded pages. Never silently show only the latest 5,000.
+  async function loadAll<T>(table:"transactions"|"invoices"|"documents"|"commission_settlements",orderColumn:string,maxRows:number):Promise<T[]>{
+    const out:T[]=[];const page=1000;
+    for(let start=0;start<maxRows;start+=page){
+      const {data,error}=await client!.from(table).select("*").order(orderColumn,{ascending:false}).range(start,start+page-1);
+      if(error)throw new Error(table+": "+error.message);
+      const chunk=(data??[]) as T[];out.push(...chunk);
+      if(chunk.length<page)return out;
+    }
+    throw new Error(table+" has more than "+maxRows+" rows; add server-side pagination before trusting yearly totals.");
+  }
+  try{
+    const [t,i,d,c]=await Promise.all([
+      loadAll<Transaction>("transactions","txn_date",50000),
+      loadAll<Invoice>("invoices","invoice_date",20000),
+      loadAll<Doc>("documents","created_at",20000),
+      loadAll<Settlement>("commission_settlements","month",20000)
+    ]);
+    setTxns(t);setInvoices(i);setDocs(d);setSettlements(c);setError("");
+  }catch(e){setError("Could not load complete ledger: "+String(e))}
  },[client,user]);
  useEffect(()=>{void refresh()},[refresh]);
  const filteredTx=txns.filter(t=>t.txn_date.startsWith(month)&&(entity==="all"||t.entity===entity));
