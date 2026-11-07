@@ -41,3 +41,11 @@ Free plans have rate, storage, project-inactivity and execution limits. **Vercel
 - Synthetic test coverage includes PDF text layout parsing and encrypted cloud backup round-trip; **real bank PDFs, real cloud credentials, full browser/E2E workflows and production recovery are not yet verified**.
 
 The owner has authorized development across the full roadmap under Issue #2, but **deploying live financial data still requires external Supabase/Vercel account connections and completed safety/accuracy gates**.
+
+## Yearly PDF/Excel and Indian FY reporting (November 2026)
+- The private Upload Center accepts multiple PDF, CSV, and XLSX statements. Supported **text-based** bank PDF rows are parsed in the browser with optional per-upload PDF password, never stored. Unknown layouts, scanned PDFs and ambiguous entries are placed in review; bank-specific production acceptance remains outstanding.
+- A multi-month/annual source is indexed to all transaction months; apply `supabase/003_document_periods.sql` before using this feature. Source statement PDF/XLSX remains in private Supabase Storage (not on Vercel filesystem).
+- The Yearly Overview shows **Indian financial year (April–March)** or calendar year (January–December), month-wise and category-wise income/expenses. You can edit imported transaction categories and persist them to the cloud ledger.
+- Download annual PDF and Excel reports directly from that screen; month-end ZIP includes source files and the monthly CA workbook.
+- Accounts, transactions, documents and document-period indexes require Supabase credentials and migrations. **Vercel deployment without these env values only displays a setup screen, and cannot save data yet.** Do not treat deployment as proof of durable data persistence.
+- Free Vercel Hobby currently restricts use to personal/non-commercial projects; business or commercial deployment eligibility must be checked independently. No automatic paid upgrade.
