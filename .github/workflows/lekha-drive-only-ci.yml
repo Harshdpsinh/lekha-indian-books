@@ -1,0 +1,35 @@
+name: Lekha Drive-only Web CI
+on:
+  push:
+    branches: [feature/vercel-google-drive-only]
+    paths:
+      - 'drive-web/**'
+      - '.github/workflows/lekha-drive-only-ci.yml'
+  pull_request:
+    paths:
+      - 'drive-web/**'
+      - '.github/workflows/lekha-drive-only-ci.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drive-web
+    env:
+      GOOGLE_CLIENT_ID: placeholder-test-client
+      GOOGLE_CLIENT_SECRET: placeholder-test-secret
+      NEXTAUTH_SECRET: placeholder-test-secret-not-for-production
+      LEKHA_ALLOWED_EMAIL: synthetic@example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Financial calculations and reconciliation tests
+        run: npm test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
