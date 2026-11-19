@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { LedgerClient, User } from "@/lib/ledger-client";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import type { Invoice } from "@/lib/types";
@@ -26,7 +26,7 @@ async function read(file:File):Promise<Row[]>{
  sheet.eachRow((r,index)=>{if(index===1)return;const row:Row={};for(let c=1;c<=sheet.columnCount;c++){const cell=r.getCell(c).value;row[String(headers[c]??"Column "+c)]=cell&&typeof cell==="object"&&"result" in cell?(cell as {result:unknown}).result:cell}rows.push(row)});
  return rows;
 }
-export default function Gstr2bMatcher({client,user,month,invoices,refresh}:{client:SupabaseClient;user:User;month:string;invoices:Invoice[];refresh:()=>Promise<void>}){
+export default function Gstr2bMatcher({client,user,month,invoices,refresh}:{client:LedgerClient;user:User;month:string;invoices:Invoice[];refresh:()=>Promise<void>}){
  const [busy,setBusy]=useState(false);
  const [summary,setSummary]=useState("");
  const [details,setDetails]=useState<string[]>([]);
