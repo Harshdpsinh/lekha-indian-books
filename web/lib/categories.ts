@@ -1,5 +1,5 @@
 import type { ImportRow } from "./processing";
-export const CATEGORIES=["Uncategorised","Sales","Commission income","Interest income","Salary","Refund","Office expenses","Utilities","Rent","Professional fees","Travel","Fuel","Groceries","Dining","Shopping","Insurance","Healthcare","Education","Taxes & GST","Bank charges","Internal transfer","Card settlement","Investment","Loan principal","Other income","Other expense"] as const;
+export const CATEGORIES=["Uncategorised","Sales","Commission income","Interest income","Salary","Refund","Office expenses","Utilities","Rent","Professional fees","Travel","Fuel","Groceries","Dining","Shopping","Insurance","Healthcare","Education","Taxes & GST","GST reimbursement","Bank charges","Internal transfer","Card settlement","Investment","Loan principal","Other income","Other expense"] as const;
 const rules:{pattern:RegExp;category:string}[]=[
  {pattern:/\b(NEFT|IMPS|UPI)\b.*\b(SELF|OWN|TRANSFER TO OWN)\b|SELF TRANSFER/i,category:"Internal transfer"},
  {pattern:/CREDIT CARD PAYMENT|CARD SETTLEMENT|AUTOPAY.*CARD/i,category:"Card settlement"},
