@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BarChart3, Building2, CloudUpload, CreditCard, Download, FileSpreadsheet, FileText, Landmark, LogOut, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import type { User } from "@/lib/ledger-client";
+import { ledger } from "@/lib/ledger-client";
 import { parseStatement, fingerprint } from "@/lib/processing";
 import { parsePdf } from "@/lib/pdf-transactions";
 import YearlyDashboard from "@/components/YearlyDashboard";
@@ -22,7 +22,7 @@ const items:{name:Tab;icon:typeof BarChart3}[]=[
 const nowMonth=()=>new Date().toISOString().slice(0,7);
 function FormField({label,children}:{label:string;children:React.ReactNode}){return <div className="field"><label>{label}</label>{children}</div>}
 export default function Home(){
- const client=useMemo(()=>supabase(),[]);
+ const client=useMemo(()=>ledger(),[]);
  const [user,setUser]=useState<User|null>(null);
  const [checking,setChecking]=useState(true);
  const [email,setEmail]=useState(""); const [password,setPassword]=useState("");
@@ -165,8 +165,7 @@ export default function Home(){
   }catch(e){setError("Export failed: "+String(e))}finally{setBusy(false)}
  }
  if(checking)return <div className="auth"><div>Opening Lekha…</div></div>;
- if(!client)return <div className="auth"><div className="card authbox"><div className="bigbrand">Lekha</div><p>Online accounting setup required</p><div className="notice">Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel, and run the schema.sql in Supabase. Financial data is not available until a private database is connected.</div><p className="muted">See web/README.md for free-tier setup. Never enter secret service-role keys into public variables.</p></div></div>;
- if(!user)return <div className="auth"><div className="card authbox"><div className="bigbrand">Lekha</div><p className="muted">Your private Indian books</p><h2>Secure sign in</h2><FormField label="Email"><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></FormField><FormField label="Password"><input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void signIn()}}/></FormField><button className="btn" disabled={busy||!email||!password} onClick={()=>void signIn()}>Sign in</button>{error&&<p className="notice error">{error}</p>}<p className="hint">Single-user system: administrator creates the account privately in Supabase. Public signup is disabled.</p></div></div>;
+ if(!user)return <div className="auth"><div className="card authbox"><div className="bigbrand">Lekha</div><p className="muted">Your private Indian books</p><h2>Secure sign in</h2><FormField label="Email"><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></FormField><FormField label="Password"><input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void signIn()}}/></FormField><button className="btn" disabled={busy||!password} onClick={()=>void signIn()}>Sign in</button>{error&&<p className="notice error">{error}</p>}<p className="hint">Single-user system. Sign in with the private owner password configured in Vercel. Public signup is disabled.</p></div></div>;
  return <div className="wrap"><aside className="aside"><div className="brand">Lekha<small>INDIAN BOOKS</small></div>{items.map(({name,icon:Icon})=><button key={name} className={`nav ${tab===name?"on":""}`} onClick={()=>setTab(name)}><Icon size={18}/>{name}</button>)}<button className="nav" onClick={()=>void client.auth.signOut()}><LogOut size={18}/>Sign out</button></aside><main className="main"><div className="head"><div><h1>{tab}</h1><div className="muted">Private bookkeeping • {user.email}</div></div><div className="row"><div className="field" style={{marginBottom:0}}>{monthInput}</div><select value={entity} onChange={e=>setEntity(e.target.value as typeof entity)}><option value="all">All entities</option><option value="personal">Personal</option><option value="business">Business</option></select><button className="btn alt" onClick={()=>void refresh()}><RefreshCw size={15}/></button></div></div>
   {message&&<div className="notice good">{message}</div>}{error&&<div className="notice error">{error}</div>}
   {tab==="Yearly Overview"&&<YearlyDashboard transactions={txns} year={month.slice(0,4)} entity={entity} month={month} onPickMonth={value=>{setMonth(value);setTab("Dashboard")}}/>}
