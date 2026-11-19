@@ -20,7 +20,7 @@ class Query implements PromiseLike<Result>{
 const notify=new Set<(event:string,session:{user:User}|null)=>void>();
 const auth={
  async getUser(){const r=await request({action:"session"});return {data:{user:r.data?.user??null},error:r.error}},
- onAuthStateChange(callback:(event:string,session:{user:User}|null)=>void){notify.add(callback);return {data:{subscription:{unsubscribe:()=>notify.delete(callback)}}}},
+ onAuthStateChange(callback:(event:string,session:{user:User}|null)=>void){notify.add(callback);return {data:{subscription:{unsubscribe:()=>{notify.delete(callback)}}}}},
  async signInWithPassword(credentials:{email:string;password:string}){const r=await request({action:"login",...credentials});if(r.data?.user)notify.forEach(f=>f("SIGNED_IN",{user:r.data.user}));return r},
  async signOut(){const r=await request({action:"logout"});notify.forEach(f=>f("SIGNED_OUT",null));return r}
 };
