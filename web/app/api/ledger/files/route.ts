@@ -1,0 +1,11 @@
+import {NextRequest,NextResponse} from "next/server";
+import {authorized,sameOrigin,validPath,objectPath,get,put,del} from "@/lib/ledger-server";
+export const runtime="nodejs";export const dynamic="force-dynamic";export const maxDuration=60;
+const fail=(message:string,status=400)=>NextResponse.json({data:null,error:{message}},{status,headers:{"Cache-Control":"private, no-store"}});
+export async function GET(req:NextRequest){if(!authorized(req))return fail("Sign in required",401);const path=req.nextUrl.searchParams.get("path");if(!validPath(path))return fail("Invalid file path");try{const r=await get(objectPath(path),{access:"private",useCache:false});if(!r||r.statusCode!==200||!r.stream)return fail("File not found",404);return new Response(r.stream,{headers:{"Content-Type":"application/octet-stream","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Disposition":"attachment"}})}catch{return fail("File download failed",500)}}
+export async function POST(req:NextRequest){if(!sameOrigin(req)||!authorized(req))return fail("Sign in required",401);try{const f=await req.formData();const path=f.get("path"),id=f.get("uploadId"),index=Number(f.get("index")),total=Number(f.get("total")),chunk=f.get("chunk");if(!validPath(path)||typeof id!=="string"||!/^[a-f0-9-]{36}$/.test(id)||!Number.isInteger(index)||!Number.isInteger(total)||total<1||total>5||index<0||index>=total||!(chunk instanceof File)||chunk.size>2*1024*1024)return fail("Invalid upload chunk");
+ const prefix="private-upload-parts/"+id+"/";
+ await put(prefix+index,chunk,{access:"private",addRandomSuffix:false,allowOverwrite:false});
+ if(index===total-1){const buffers:Buffer[]=[];for(let i=0;i<total;i++){const r=await get(prefix+i,{access:"private",useCache:false});if(!r||r.statusCode!==200||!r.stream)throw new Error("Incomplete upload");buffers.push(Buffer.from(await new Response(r.stream).arrayBuffer()))}await put(objectPath(path),Buffer.concat(buffers),{access:"private",addRandomSuffix:false,allowOverwrite:false});await del(Array.from({length:total},(_,i)=>prefix+i))}
+ return NextResponse.json({data:{path},error:null})
+ }catch{return fail("File save failed; retry with a new upload.",500)}}
