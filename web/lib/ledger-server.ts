@@ -1,14 +1,10 @@
 import {get,put,head,del} from "@vercel/blob";
-import {createHmac,timingSafeEqual,randomUUID} from "node:crypto";
 import type {NextRequest} from "next/server";
 export const owner={id:"00000000-0000-4000-8000-000000000001",email:"Private Lekha owner"};
-export const cookieName="lekha_session";
-const secret=()=>process.env.LEKHA_OWNER_PASSWORD||"";
-export function configured(){return secret().length>=16&&!!process.env.BLOB_READ_WRITE_TOKEN}
-function sign(value:string){return createHmac("sha256",secret()).update(value).digest("hex")}
-export function validPassword(value:unknown){return configured()&&typeof value==="string"&&timingSafeEqual(Buffer.from(sign(value)),Buffer.from(sign(secret())))}
-export function session(){const value=String(Date.now()+12*3600000)+"."+randomUUID();return value+"."+sign(value)}
-export function authorized(req:NextRequest){if(!configured())return false;const token=req.cookies.get(cookieName)?.value||"";const p=token.split(".");if(p.length!==3||Number(p[0])<=Date.now()||!Number.isFinite(Number(p[0])))return false;const sig=sign(p.slice(0,2).join("."));return p[2].length===sig.length&&timingSafeEqual(Buffer.from(p[2]),Buffer.from(sig))}
+// Access is gated upstream by Vercel Authentication (All Deployments).
+// Do not disable Deployment Protection or create public/shareable bypass links.
+export function configured(){return process.env.VERCEL==="1"&&!!process.env.BLOB_READ_WRITE_TOKEN}
+export function authorized(req:NextRequest){return configured()&&req.nextUrl.hostname==="lekha-online.vercel.app"}
 export function sameOrigin(req:NextRequest){const o=req.headers.get("origin");return !!o&&o===new URL(req.url).origin}
 export const tables=["transactions","invoices","documents","document_periods","commission_settlements","accounts"] as const;
 export type RecordRow=Record<string,any>;
