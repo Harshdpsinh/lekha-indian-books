@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {randomUUID} from "node:crypto";
-import {authorized,configured,validPassword,session,cookieName,owner,sameOrigin,tables,readTable,mutate,validPath,objectPath,del,type RecordRow} from "@/lib/ledger-server";
+import {authorized,configured,owner,sameOrigin,tables,readTable,mutate,validPath,objectPath,del,type RecordRow} from "@/lib/ledger-server";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const reply=(data:unknown=null,error:string|null=null,status=200)=>NextResponse.json({data,error:error?{message:error}:null},{status,headers:{"Cache-Control":"private, no-store"}});
@@ -11,8 +11,7 @@ export async function POST(req:NextRequest){
  try{
   const q=await req.json();
   if(q.action==="session")return reply({user:authorized(req)?owner:null,configured:configured()});
-  if(q.action==="login"){if(!configured())return reply(null,"Set the private owner password in Vercel before signing in.",503);if(!validPassword(q.password))return reply(null,"Invalid password",401);const res=reply({user:owner});res.cookies.set(cookieName,session(),{httpOnly:true,secure:true,sameSite:"strict",path:"/",maxAge:43200});return res}
-  if(q.action==="logout"){const res=reply(null);res.cookies.delete(cookieName);return res}
+  if(q.action==="login"||q.action==="logout")return reply(null,"Access is managed by Vercel Authentication.",400);
   if(!authorized(req))return reply(null,"Sign in required",401);
   if(q.action==="removeFiles"){if(!Array.isArray(q.paths)||!q.paths.every(validPath))return reply(null,"Invalid path",400);await del(q.paths.map(objectPath));return reply([])}
   if(!tables.includes(q.table))return reply(null,"Unknown table",400);
