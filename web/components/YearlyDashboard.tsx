@@ -5,7 +5,7 @@ import { money } from "@/lib/types";
 import {annualExcel, annualPdf} from "@/lib/yearly-reports";
 
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const EXCLUDE=new Set(["Internal transfer","Card settlement","Investment","Loan principal"]);
+const EXCLUDE=new Set(["Internal transfer","Card settlement","Investment","Loan principal","GST reimbursement"]);
 type Props={transactions:Transaction[],year:string,entity:"all"|"business"|"personal",month:string,onPickMonth:(month:string)=>void};
 export default function YearlyDashboard({transactions,year,entity,month,onPickMonth}:Props){
  const [periodMode,setPeriodMode]=useState<"financial"|"calendar">("financial");
