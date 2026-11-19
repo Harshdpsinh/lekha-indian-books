@@ -13,7 +13,7 @@ import Gstr2bMatcher from "@/components/Gstr2bMatcher";
 import CommissionReconciliation from "@/components/CommissionReconciliation";
 
 type DocumentPeriod={user_id:string;document_id:string;month:string};
-type Settlement = {id:string;month:string;payer:string;invoice_no:string;gross_commission_paise:number;gst_charged_paise:number;tds_deducted_paise:number;other_deductions_paise:number;amount_received_paise:number;notes:string|null};
+type Settlement = {brokerage_received_paise?:number;gst_due_paise?:number;gst_received_paise?:number;invoice_sent_date?:string;gst_receipt_date?:string;gst_bank_reference?:string;id:string;month:string;payer:string;invoice_no:string;gross_commission_paise:number;gst_charged_paise:number;tds_deducted_paise:number;other_deductions_paise:number;amount_received_paise:number;notes:string|null};
 type Tab="Dashboard"|"Yearly Overview"|"Upload Center"|"Transactions"|"GST & Invoices"|"Reconciliation"|"Month-End & CA";
 const items:{name:Tab;icon:typeof BarChart3}[]=[
 {name:"Dashboard",icon:BarChart3},{name:"Yearly Overview",icon:BarChart3},{name:"Upload Center",icon:CloudUpload},{name:"Transactions",icon:CreditCard},
@@ -69,8 +69,8 @@ export default function Home(){
  const filteredTx=txns.filter(t=>t.txn_date.startsWith(month)&&(entity==="all"||t.entity===entity));
  const filteredInv=invoices.filter(i=>i.invoice_date.startsWith(month)&&(entity==="all"||i.entity===entity));
  const filteredDocs=docs.filter(d=>d.month===month||docPeriods.some(p=>p.document_id===d.id&&p.month===month));
- const income=filteredTx.filter(t=>t.direction==="credit"&&!["Internal transfer","Card settlement","Investment","Loan principal"].includes(t.category)).reduce((a,t)=>a+t.amount_paise,0);
- const expense=filteredTx.filter(t=>t.direction==="debit"&&!["Internal transfer","Card settlement","Investment","Loan principal"].includes(t.category)).reduce((a,t)=>a+t.amount_paise,0);
+ const income=filteredTx.filter(t=>t.direction==="credit"&&!["Internal transfer","Card settlement","Investment","Loan principal","GST reimbursement"].includes(t.category)).reduce((a,t)=>a+t.amount_paise,0);
+ const expense=filteredTx.filter(t=>t.direction==="debit"&&!["Internal transfer","Card settlement","Investment","Loan principal","GST reimbursement"].includes(t.category)).reduce((a,t)=>a+t.amount_paise,0);
  const sales=filteredInv.filter(i=>i.kind==="sale");
  const purchases=filteredInv.filter(i=>i.kind==="purchase");
  const saleTotal=sales.reduce((a,i)=>a+i.total_paise,0);
@@ -147,7 +147,7 @@ export default function Home(){
    sheet("GST Summary",["Metric","Amount INR"],[["Output GST",outputGst/100],["ITC matched with uploaded 2B",matchedItc/100],["ITC pending verification",reviewItc/100],["Sales receivable",receivable/100]]);
    sheet("Review Queue",["Date","Account","Description","Amount INR","Reason"],issues.map(t=>[t.txn_date,t.account_label,t.description,t.amount_paise/100,t.category==="Uncategorised"?"Uncategorised":"Not reviewed"]));
    sheet("Document Index",["Name","Type","Month","Status","Uploaded"],filteredDocs.map(d=>[d.name,d.kind,d.month,d.status,d.created_at]));
-   sheet("Commission Settlements",["Payer","Invoice","Gross","GST","TDS","Other deductions","Expected net","Actual received","Difference"],settlements.filter(s=>s.month===month).map(s=>{const net=s.gross_commission_paise+s.gst_charged_paise-s.tds_deducted_paise-s.other_deductions_paise;return [s.payer,s.invoice_no,s.gross_commission_paise/100,s.gst_charged_paise/100,s.tds_deducted_paise/100,s.other_deductions_paise/100,net/100,s.amount_received_paise/100,(net-s.amount_received_paise)/100]}));
+   sheet("GST Reimbursements",["Payer","Invoice","Brokerage already received","GST due","GST received","Difference","Invoice sent","Receipt date","Bank reference"],settlements.filter(s=>s.month===month&&s.gst_due_paise!=null).map(s=>[s.payer,s.invoice_no,(s.brokerage_received_paise??0)/100,(s.gst_due_paise??0)/100,(s.gst_received_paise??0)/100,((s.gst_due_paise??0)-(s.gst_received_paise??0))/100,s.invoice_sent_date??"",s.gst_receipt_date??"",s.gst_bank_reference??""]));
    sheet("CA Checklist",["Item","Status"],[["GST registration details","Add supporting registration document"],["Bank reconciliation",issues.length?"Pending review":"Review balances separately"],["GSTR-2B match","Manual confirmation required"],["Income tax / TDS","Not validated"],["Source documents",filteredDocs.length+" uploaded"]]);
    zip.file("08_Lekha_Monthly_CA_Report.xlsx",await book.xlsx.writeBuffer());
    const folderNames:{[key:string]:string}={bank:"01_Bank_Statements",credit_card:"02_Credit_Card_Statements",upi:"01_Bank_Statements",sale:"03_Sales_Invoices",purchase:"04_Purchase_Invoices",gst_invoice:"05_GST_Reports"};
