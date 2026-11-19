@@ -89,7 +89,7 @@ export default function Home(){
  async function signIn(){if(!client)return;setBusy(true);setError("");const {error}=await client.auth.signInWithPassword({email,password});if(error)setError(error.message);setPassword("");setBusy(false)}
  async function upload(files:File[]){
   if(!client||!user||!files?.length)return;setBusy(true);setError("");let uploaded=0,imported=0;const warnings:string[]=[];
-  let savedPasswords:string[]=[];try{savedPasswords=(await vault("list")).passwords??[]}catch{warnings.push("Saved PDF passwords unavailable; you can enter a password manually.")}
+  const retryFiles:File[]=[];let savedPasswords:string[]=[];try{savedPasswords=(await vault("list")).passwords??[]}catch{warnings.push("Saved PDF passwords unavailable; you can enter a password manually.")}
   const results:Record<string,string>={};setUploadResults({});
   try{
    for(const file of Array.from(files)){
@@ -97,20 +97,25 @@ export default function Home(){
     if(!/\.(pdf|csv|xlsx)$/i.test(file.name)){warnings.push(file.name+": unsupported format");continue}
     let effectivePassword="";let opened="";let preview="";
     if(file.name.toLowerCase().endsWith(".pdf")){
-     try{const u=await unlockPdf(file,[pdfPassword,...savedPasswords]);effectivePassword=u.password;preview=u.text;opened=u.encrypted?"Unlocked ("+u.pages+" pages)":"PDF opened ("+u.pages+" pages)";results[file.name]=opened;setUploadResults({...results});
+     try{const u=await unlockPdf(file,[...savedPasswords,pdfPassword]);effectivePassword=u.password;preview=u.text;opened=u.encrypted?"Unlocked ("+u.pages+" pages)":"PDF opened ("+u.pages+" pages)";results[file.name]=opened;setUploadResults({...results});
       if(rememberPassword&&effectivePassword&&effectivePassword===pdfPassword&&!savedPasswords.includes(effectivePassword)){try{await vault("save",effectivePassword);savedPasswords.push(effectivePassword);opened+=" • Password saved";results[file.name]=opened}catch{results[file.name]=opened+" • Password not saved"}}
-     }catch(e){results[file.name]=String(e);setUploadResults({...results});warnings.push(file.name+": "+String(e));continue}
+     }catch(e){results[file.name]=String(e);setUploadResults({...results});warnings.push(file.name+": "+String(e));retryFiles.push(file);continue}
     }
     if(!file.name.toLowerCase().endsWith(".pdf")){try{preview=await tabularPreview(file)}catch{}}
     const detected=identifyDocument(file.name,preview);
     const kind=autoDetect?detected.kind:docKind;
     const accountName=autoDetect?detected.account:account;
     const book=autoDetect?detected.entity:docEntity;
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const fileHash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),b=>b.toString(16).padStart(2,"0")).join("");
+    const prior=await client.from("documents").select("*").eq("file_hash",fileHash);
+    if(prior.error){warnings.push(file.name+": could not check duplicates; retry");retryFiles.push(file);continue}
+    if(prior.data?.length){results[file.name]="Already stored • duplicate file skipped";setUploadResults({...results});continue}
     const id=crypto.randomUUID();const key=`${user.id}/${month}/${id}-${file.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
     const storage=await client.storage.from("lekha-documents").upload(key,file,{upsert:false,contentType:file.type||"application/octet-stream"});
-    if(storage.error){warnings.push(file.name+": upload failed: "+storage.error.message);results[file.name]=(opened?opened+" • ":"")+"Storage failed: "+storage.error.message;continue}
-    const doc=await client.from("documents").insert({id,user_id:user.id,name:file.name,storage_path:key,month,kind,status:"pending",size_bytes:file.size});
-    if(doc.error){await client.storage.from("lekha-documents").remove([key]);warnings.push(file.name+": "+doc.error.message);results[file.name]="Document index save failed; retry";continue}
+    if(storage.error){warnings.push(file.name+": upload failed: "+storage.error.message);results[file.name]=(opened?opened+" • ":"")+"Storage failed: "+storage.error.message;retryFiles.push(file);continue}
+    const doc=await client.from("documents").insert({id,user_id:user.id,name:file.name,storage_path:key,month,kind,status:"pending",size_bytes:file.size,file_hash:fileHash,pdf_opened:!!opened});
+    if(doc.error){await client.storage.from("lekha-documents").remove([key]);warnings.push(file.name+": "+doc.error.message);results[file.name]="Document index save failed; retry";retryFiles.push(file);continue}
     uploaded++;
     if(/\.(pdf|csv|xlsx)$/i.test(file.name)&&["bank","credit_card","upi"].includes(kind)&&accountName){
      try{
@@ -162,7 +167,7 @@ export default function Home(){
    notify(`${uploaded} files stored securely. Up to ${imported} transaction rows submitted (duplicates skipped).`);
    await refresh();
    if(warnings.length)setError(warnings.slice(0,8).join(" | "));setUploadResults({...results});
-  }finally{setBusy(false);setPdfPassword("")}
+  }finally{setBusy(false);setPdfPassword("");setSelectedFiles(retryFiles)}
  }
  async function addInvoice(){
   if(!client||!user)return;if(!invoiceNo.trim()||!party.trim()){setError("Invoice number and party are required");return}
