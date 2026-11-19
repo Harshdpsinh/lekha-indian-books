@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import type {SupabaseClient,User} from "@supabase/supabase-js";
+import type { LedgerClient, User } from "@/lib/ledger-client";
 import {money,paisa} from "@/lib/types";
 type Settlement={id:string;month:string;payer:string;invoice_no:string;gross_commission_paise:number;gst_charged_paise:number;tds_deducted_paise:number;other_deductions_paise:number;amount_received_paise:number;receipt_date:string|null;notes:string|null};
 const expected=(s:Settlement)=>s.gross_commission_paise+s.gst_charged_paise-s.tds_deducted_paise-s.other_deductions_paise;
-export default function CommissionReconciliation({client,user,month}:{client:SupabaseClient;user:User;month:string}){
+export default function CommissionReconciliation({client,user,month}:{client:LedgerClient;user:User;month:string}){
  const [records,setRecords]=useState<Settlement[]>([]);const [payer,setPayer]=useState("");const [invoice,setInvoice]=useState("");const [gross,setGross]=useState("");const [gst,setGst]=useState("");const [tds,setTds]=useState("");const [deduct,setDeduct]=useState("");const [received,setReceived]=useState("");const [note,setNote]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
  async function reload(){const {data,error:err}=await client.from("commission_settlements").select("*").eq("month",month).order("created_at",{ascending:false});if(err)setError(err.message);else setRecords((data??[]) as Settlement[])}
  useEffect(()=>{void reload()},[client,month]);
