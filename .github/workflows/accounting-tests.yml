@@ -1,0 +1,25 @@
+name: Accounting regression tests
+on:
+  push:
+    branches:
+      - feature/accounting-ledger-gst-recon-2026-11
+      - main
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  accounting-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile Python modules
+        run: python -m compileall -q lekha app
+      - name: Run accounting regression suite
+        run: python -m unittest discover -s tests -p 'test_accounting.py' -v

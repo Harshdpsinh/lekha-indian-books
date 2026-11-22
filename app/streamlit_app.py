@@ -19,7 +19,7 @@ from lekha.spend import token_of, CATS
 
 st.set_page_config(page_title="Lekha", layout="wide")
 st.title("Lekha — Indian books")
-st.caption("Upload bank, cards, UPI, GST, purchases and bills on separate tabs. PDF passwords live in ~/.lekha/pdf_tries.txt")
+st.caption("Bank imports are provisional. Legacy PDF passwords are in PLAINTEXT at ~/.lekha/pdf_tries.txt; use only on a trusted local computer.")
 
 ent = Entity()
 missing = ent.validate()
@@ -32,7 +32,7 @@ if "pw_cache" not in st.session_state:
     st.session_state.pw_cache = {}
 
 TRIES = Path.home() / ".lekha" / "pdf_tries.txt"
-SEED = ["gohi0708", "GOHI0708", "HARS0708", "hars0708", "070819941994", "HARS070894"]
+SEED = []  # No personal/password guesses in a public repository.
 
 def load_tries() -> list[str]:
     TRIES.parent.mkdir(parents=True, exist_ok=True)
@@ -69,7 +69,7 @@ with st.sidebar:
     start = st.date_input("From", value=None)
     end = st.date_input("To", value=None)
     st.subheader("PDF passwords")
-    st.caption("Tried on every locked statement. Saved in ~/.lekha/pdf_tries.txt")
+    st.caption("WARNING: saved PDF passwords are NOT ENCRYPTED. Never expose this workflow on a public server.")
     edited = st.text_area("One per line", value="\n".join(tries), height=140)
     if st.button("Save passwords"):
         save_tries(edited.splitlines())
@@ -98,9 +98,9 @@ debits = df[df["direction"] == "debit"]["amount"].sum() if not df.empty else 0
 uncat = int(((df["category"] == "Uncategorised") | (df.get("confidence", 1) < 0.5)).sum()) if not df.empty else 0
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Turnover (credits)", f"\u20b9{credits:,.2f}")
+c1.metric("All credits (not turnover)", f"\u20b9{credits:,.2f}")
 c2.metric("Outflows", f"\u20b9{debits:,.2f}")
-c3.metric("Net", f"\u20b9{(credits-debits):,.2f}")
+c3.metric("Net cash movement (not profit)", f"\u20b9{(credits-debits):,.2f}")
 c4.metric("Uncategorised", uncat)
 
 names = [l[0] for l in LANES] + ["Ledgers", "Review", "Export"]
