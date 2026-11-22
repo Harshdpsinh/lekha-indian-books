@@ -32,7 +32,7 @@ if "pw_cache" not in st.session_state:
     st.session_state.pw_cache = {}
 
 TRIES = Path.home() / ".lekha" / "pdf_tries.txt"
-SEED = ["gohi0708", "GOHI0708", "HARS0708", "hars0708", "070819941994", "HARS070894"]
+SEED = []  # Never commit or generate actual PDF password guesses in source control.
 
 def load_tries() -> list[str]:
     TRIES.parent.mkdir(parents=True, exist_ok=True)
@@ -69,7 +69,7 @@ with st.sidebar:
     start = st.date_input("From", value=None)
     end = st.date_input("To", value=None)
     st.subheader("PDF passwords")
-    st.caption("Tried on every locked statement. Saved in ~/.lekha/pdf_tries.txt")
+    st.caption("Legacy password list: stored as PLAINTEXT in ~/.lekha/pdf_tries.txt. Use only on a trusted local computer; migrate to the encrypted vault.")
     edited = st.text_area("One per line", value="\n".join(tries), height=140)
     if st.button("Save passwords"):
         save_tries(edited.splitlines())
