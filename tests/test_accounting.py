@@ -65,6 +65,18 @@ class AccountingTests(unittest.TestCase):
         a.add_invoice("inv2","b","gstr2b","24ABCDE1234F1Z5","001","2026-11-20",100,8,9,path=self.db)
         self.assertEqual(a.reconcile_gstr2b("b",path=self.db)[0]["status"],"amount_mismatch")
 
+    def test_trial_balance_ignores_future_transactions(self):
+        a.post_journal("future","b","2026-12-15","Future income",
+                       [("bank",55,0),("sales",0,55)],path=self.db)
+        old=a.trial_balance("b",path=self.db,through="2026-11-30")
+        self.assertEqual(len(old),2)
+        self.assertEqual(sum(x["debit_paise"] for x in old),0)
+
+    def test_invoice_fractional_paise_rejected(self):
+        with self.assertRaises(ValueError):
+            a.add_invoice("fraction","b","purchase","24ABCDE1234F1Z5",
+                          "002","2026-11-20","1.001",path=self.db)
+
     def test_legacy_schema_unmodified(self):
         with sqlite3.connect(self.db) as conn:
             cols=[r[1] for r in conn.execute("PRAGMA table_info(txns)")]
