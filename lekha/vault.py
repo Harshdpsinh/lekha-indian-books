@@ -37,6 +37,9 @@ def save(passphrase: str, secrets: dict[str, str]) -> None:
         for k, v in secrets.items()
     ):
         raise ValueError("Vault entries must be string keys and string values")
+    if VAULT.exists():
+        # Never destroy existing secrets when the supplied passphrase is wrong.
+        load(passphrase)
     VAULT.parent.mkdir(parents=True, exist_ok=True)
     salt = os.urandom(16)
     token = _fernet(passphrase, salt, ITERATIONS).encrypt(
