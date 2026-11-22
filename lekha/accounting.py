@@ -9,7 +9,7 @@ import hashlib
 import json
 import sqlite3
 from datetime import date, datetime, timezone
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from lekha.db import DB
@@ -183,17 +183,16 @@ def reverse_journal(original_id,new_id,posting_date,reason,path=None):
 
 def trial_balance(book_id,path=None,through=None):
     with _connect(path) as con:
-        query="""SELECT a.account_id,a.name,a.type,
+        # Filter journals inside the left join to retain accounts with only future entries.
+        params = [_date(through), book_id] if through else [book_id]
+        joined = ("SELECT l.* FROM journal_lines l JOIN journal_headers h "
+                  "ON h.journal_id=l.journal_id WHERE h.posting_date<=?") if through else "SELECT * FROM journal_lines"
+        query=f"""SELECT a.account_id,a.name,a.type,
         COALESCE(SUM(l.debit_paise),0) AS debit_paise,
         COALESCE(SUM(l.credit_paise),0) AS credit_paise
-        FROM accounts a LEFT JOIN journal_lines l ON a.account_id=l.account_id
-        LEFT JOIN journal_headers h ON l.journal_id=h.journal_id
-        WHERE a.book_id=?"""
-        params=[book_id]
-        if through:
-            query+=" AND (h.posting_date IS NULL OR h.posting_date<=?)"
-            params.append(_date(through))
-        query+=" GROUP BY a.account_id ORDER BY a.type,a.name"
+        FROM accounts a LEFT JOIN ({joined}) l ON a.account_id=l.account_id
+        WHERE a.book_id=?
+        GROUP BY a.account_id ORDER BY a.type,a.name"""
         return [dict(x) for x in con.execute(query,params)]
 
 def close_period(book_id,month,path=None):
@@ -208,9 +207,12 @@ def add_invoice(invoice_id,book_id,role,gstin,number,invoice_date,
                 taxable,cgst="0",sgst="0",igst="0",cess="0",eligible_itc="review",
                 source="",path=None):
     with _connect(path) as con:
-        vals=[int(Decimal(str(x))*100) for x in (taxable,cgst,sgst,igst,cess)]
-        if any(x<0 for x in vals):
-            raise ValueError("Invoice amounts cannot be negative")
+        vals=[]
+        for x in (taxable,cgst,sgst,igst,cess):
+            val=Decimal(str(x))
+            if not val.is_finite() or val<0 or val.as_tuple().exponent < -2:
+                raise ValueError("Invoice amounts must be nonnegative with at most two decimals")
+            vals.append(int(val*100))
         con.execute("INSERT INTO invoice_records VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (invoice_id,book_id,role,gstin.strip().upper(),number.strip(),
                      _date(invoice_date),*vals,eligible_itc,source))
