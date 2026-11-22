@@ -71,7 +71,7 @@ class BankGSTTests(unittest.TestCase):
         payload=gst.export_workpapers_zip("business","2026-11",path=self.db)
         with ZipFile(BytesIO(payload)) as z:
             self.assertIn("summary.json",z.namelist())
-            self.assertIn(b"NOT",z.read("READ_FIRST_NOT_FOR_FILING.txt"))
+            self.assertIn(b"Not a GST portal JSON",z.read("READ_FIRST_NOT_FOR_FILING.txt"))
 
     def test_gst_ineligible_not_claimed(self):
         a.add_invoice("p1","business","purchase","24ABCDE1234F1Z5","PUR-1",
